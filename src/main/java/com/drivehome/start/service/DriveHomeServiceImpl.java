@@ -172,37 +172,51 @@ public class DriveHomeServiceImpl implements IDriveHomeService {
 	}
 
 	@Override
-	public Resource[] download(FileDrive[] files) throws Exception {
-		Resource[] resources = new Resource[files.length];
+	public Resource download(FileDrive file) throws Exception {
+		Resource resource = null;
 		
-		for (int i = 0; i < resources.length; i++) {
-			Path route = getPath(files[i].getPath(), files[i].getName());
-			Resource resource = new UrlResource(route.toUri());
+		Path route = getPath(file.getPath(), file.getName());
+		resource = new UrlResource(route.toUri());
 			
-			if (!resource.exists() || !resource.isReadable()) {
-				System.out.println ("No se puede acceder al recurso: " + files[i].getName());
-				resources[i] = null;
-			} else {
-				resources[i] = resource;
-			}
+		if (!resource.exists() || !resource.isReadable()) {
+			System.out.println ("No se puede acceder al recurso: " + file.getName());
+			resource = null;
 		}
-		return resources;
-	}
-	
-	@Override
-	public Resource[] getResourcesFolder(String path, String folder) throws Exception {
-		Resource[] resources = null;
 		
-		File f = new File(path, folder);
-		if (f.isDirectory()) {			
-			Path route = getPath(path, folder);
-			resources = resourcesLoader(route.toString());
-		}
-		return resources;
+		return resource;
 	}
 	
 	private Resource[] resourcesLoader(String path) throws Exception {
 		return ResourcePatternUtils.getResourcePatternResolver(resourceLoader).getResources("file:" + path +"/**");
+	}
+
+	@Override
+	public Resource[] obtainResources(List<FileDrive> files) throws Exception {
+		Resource[] resources = null;
+		List<Resource> resourcesTmp = new ArrayList<>();
+		
+		for (FileDrive fd: files) { 
+			File f = new File(fd.getPath(), fd.getName());
+			Path route = getPath(fd.getPath(), fd.getName());
+			
+			if (f.isDirectory()) {	// es una carpeta
+				resources = null;
+				resources = resourcesLoader(route.toString());
+				if (resources != null && resources.length > 0) {
+					for (Resource resource: resources) {
+						resourcesTmp.add(resource);
+					}
+				}
+			} else if (f.isFile()) { // es un archivo
+				Resource resource = new UrlResource(route.toUri());
+				resourcesTmp.add(resource);
+			}
+		}
+		
+		resources = new Resource[resourcesTmp.size()];
+		resources = resourcesTmp.toArray(resources);
+		return resources;
+		
 	}
 	
 }
