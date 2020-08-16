@@ -1,6 +1,5 @@
 package com.drivehome.start.controller;
 
-import java.net.MalformedURLException;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -201,8 +200,8 @@ public class DriveHomeRestController {
 		return rEntity;
 	}
 	
-	@GetMapping(value="/download/single") // con :.+ se indica que el nombre contiene un punto y mas caracteres despues
-	public ResponseEntity<?> verFoto(@RequestParam String path, @RequestParam String file) throws Exception {
+	@GetMapping(value="/download/single")
+	public ResponseEntity<?> verFoto(@RequestParam String path, @RequestParam String file) {
 		ResponseEntity<?> rEntity = null;
 		Map<String, Object> response = new HashMap<>();
 		try {
@@ -220,7 +219,7 @@ public class DriveHomeRestController {
 				rEntity = new ResponseEntity<Map<String, Object>>(response, HttpStatus.BAD_REQUEST);				
 			}
 			
-		} catch (MalformedURLException e) {
+		} catch (Exception e) {
 			System.out.println(e.getClass() + " " + e.getMessage());
 			response.put("message", e.getMessage());
 			rEntity = new ResponseEntity<Map<String, Object>>(response, HttpStatus.INTERNAL_SERVER_ERROR);	

@@ -1,13 +1,15 @@
 package com.drivehome.start.service;
 
-import java.io.File;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.Resource;
@@ -54,20 +56,19 @@ public class DriveHomeServiceImpl implements IDriveHomeService {
 		String extension = name.substring(name.lastIndexOf(".")); // extension
 		String nameTmp = name.substring(0, name.lastIndexOf(".")); // nombre sin extension
 		String fName;
-
-		File f = new File(path, name);
-
-		if (f.exists()) { // el archivo existe, cambiar su nombre
+		
+		Path pathFile = getPath(path, name);
+		
+		if (Files.exists(pathFile)) {
 			for (int i = 1;; i++) {
 				fName = nameTmp + "(" + i + ")" + extension;
-				f = new File(path, fName);
-				if (f.exists()) {
+				pathFile = getPath(path, fName);
+				if (Files.exists(pathFile)) {
 					continue;
 				} else {
 					break;
 				}
 			}
-
 		} else { // no existe el archivo, usar el actual
 			fName = name;
 		}
@@ -88,25 +89,25 @@ public class DriveHomeServiceImpl implements IDriveHomeService {
 	}
 
 	private List<FileDrive> getElements(String path, int opc) throws Exception {
-		File f;
 		List<FileDrive> elements = new ArrayList<>();
-
-		f = new File(path);
-		String elementsName[] = f.list();
-
-		for (int i = 0; i < elementsName.length; i++) {
-			File tmp = new File(f.getAbsolutePath(), elementsName[i]);
-
-			if (opc == 0) { // sacar solo los directorios
-				if (tmp.isDirectory()) {
-					elements.add(new FileDrive(tmp.getName(), tmp.getAbsolutePath()));
+		
+		Path pathDir = Paths.get(path);
+		Stream<Path> paths = Files.list(pathDir);
+		
+		paths.forEach(pathTmp -> {
+			FileDrive fd = new FileDrive(pathTmp.getFileName().toString(), path);
+			if (opc == 0) {
+				if (Files.isDirectory(pathTmp)) {
+					elements.add(fd);
 				}
-			} else if (opc == 1) { // sacar solo los archivos
-				if (tmp.isFile()) {
-					elements.add(new FileDrive(tmp.getName(), tmp.getAbsolutePath()));
+			} else if (opc == 1) {
+				if (!Files.isDirectory(pathTmp)) {
+					elements.add(fd);
 				}
+					
 			}
-		}
+		});
+		paths.close();
 
 		return elements;
 	}
@@ -114,56 +115,58 @@ public class DriveHomeServiceImpl implements IDriveHomeService {
 	@Override
 	public void deleteElement(FileDrive[] elements) throws Exception {
 		for (FileDrive fd: elements) {
-			Path route = getPath(fd.getPath(), fd.getName());
-			File f = route.toFile();
-	
-			if (f.isDirectory()) {
-				deleteDirectory(f);
-	
-			} else {
-				if (f.exists() && f.canRead()) {
-					f.delete();
+			Path path = getPath(fd.getPath(), fd.getName());
+			
+			if (Files.exists(path)) {
+				if (Files.isDirectory(path)) {
+					deleteDirectory(path);
 				} else {
-					throw new RuntimeException("El elemento no existe o no es accesible.");
+					if (!Files.deleteIfExists(path)) {
+						throw new RuntimeException("No se pudo borrar el archivo " + path.getFileName().toString());
+					}
 				}
 			}
+			
 		}
 
 	}
-
-	private void deleteDirectory(File file) throws Exception {
-		if (file.isDirectory()) {
-			File[] entries = file.listFiles();
-			if (entries != null) {
-				for (File entry : entries) {
-					deleteDirectory(entry);
-				}
-			}
+	
+	private void deleteDirectory(Path path) throws Exception {
+		try {
+			Files.walk(path)
+			.sorted(Comparator.reverseOrder())
+			.forEach(pathTmp -> {
+				
+					try {
+						Files.deleteIfExists(pathTmp);
+					} catch (IOException e) {
+						throw new RuntimeException("Ocurrió un error al eliminar " + pathTmp);
+					}
+				
+			});
+		} catch (Exception e) {
+			throw new Exception (e);
 		}
 		
-		if (!file.delete()) {
-			throw new RuntimeException("Algo falló al eliminar el elemento " + file);			
-		}
 	}
 
 	@Override
 	public Boolean createDir(String path, String name) throws Exception {
-		File dir = new File(path, name);
+		Path pathdir = getPath(path, name);
 		
-		if (dir.exists()) {
-			return false;
-		} else {
-			dir.mkdir();
+		if (!Files.exists(pathdir)) {
+			Files.createDirectory(pathdir);
 			return true;
+		} else {
+			return false;
 		}
 	}
 
 	@Override
 	public Boolean renameElement(String path, String oldName, String newName) throws Exception {
-		File original = new File(path, oldName);
 		Path source = getPath(path, oldName);
 		
-		if (original.exists()) {
+		if (Files.exists(source)) {
 			Files.move(source, source.resolveSibling(newName));
 			return true;
 		} else {
@@ -180,7 +183,7 @@ public class DriveHomeServiceImpl implements IDriveHomeService {
 			
 		if (!resource.exists() || !resource.isReadable()) {
 			System.out.println ("No se puede acceder al recurso: " + file.getName());
-			resource = null;
+			throw new RuntimeException("No se puede acceder al recurso: " + file.getName());
 		}
 		
 		return resource;
@@ -196,19 +199,18 @@ public class DriveHomeServiceImpl implements IDriveHomeService {
 		List<Resource> resourcesTmp = new ArrayList<>();
 		
 		for (FileDrive fd: files) { 
-			File f = new File(fd.getPath(), fd.getName());
-			Path route = getPath(fd.getPath(), fd.getName());
+			Path path = getPath(fd.getPath(), fd.getName());
 			
-			if (f.isDirectory()) {	// es una carpeta
+			if (Files.isDirectory(path)) {	// es una carpeta
 				resources = null;
-				resources = resourcesLoader(route.toString());
+				resources = resourcesLoader(path.toString());
 				if (resources != null && resources.length > 0) {
 					for (Resource resource: resources) {
 						resourcesTmp.add(resource);
 					}
 				}
-			} else if (f.isFile()) { // es un archivo
-				Resource resource = new UrlResource(route.toUri());
+			} else { // es un archivo
+				Resource resource = new UrlResource(path.toUri());
 				resourcesTmp.add(resource);
 			}
 		}
