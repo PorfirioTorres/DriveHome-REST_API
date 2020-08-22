@@ -39,6 +39,40 @@ public class DriveHomeRestController {
 	@Autowired
 	private IDriveHomeService driveHomeService;
 	
+	@PostMapping(value="/uploaddirectory")
+	public ResponseEntity<?> uploadDirectory(@RequestParam ("files") MultipartFile[] files, @RequestParam String path) {
+		ResponseEntity<?> rEntity = null;
+		Map<String, Object> response = new HashMap<>();
+		HttpStatus resphttp;
+		
+		try {
+			if (path == null || !Validations.validatePath(path)) {
+				response.put("message", "El path no es válido.");
+				resphttp = HttpStatus.BAD_REQUEST;
+			} else {
+				if (files == null || files.length == 0) {
+					response.put("message", "No hay archivos para subir.");
+					resphttp = HttpStatus.BAD_REQUEST;
+				} else {
+					driveHomeService.uploadDirectory(files, path);
+					response.put("success", "Directorio subido exitosamente.");
+					resphttp = HttpStatus.CREATED;
+				}
+			}
+			rEntity = new ResponseEntity<Map<String, Object>>(response, resphttp);
+		} catch(Exception e) {
+			System.out.println(e.getClass() + "\n" +e.getMessage());
+			if (e instanceof RuntimeException) {				
+				response.put("message", e.getMessage());
+			} else {				
+				response.put("message", "Ocurrió un error al subir los archivos. Intente más tarde.");
+			}
+			rEntity = new ResponseEntity<Map<String, Object>>(response, HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+		
+		return rEntity;
+	}
+	
 	@PostMapping(value="/upload")
 	public ResponseEntity<?> upload(@RequestParam ("files") MultipartFile[] files, @RequestParam String path) {
 		ResponseEntity<?> rEntity = null;
@@ -201,7 +235,7 @@ public class DriveHomeRestController {
 	}
 	
 	@GetMapping(value="/download/single")
-	public ResponseEntity<?> verFoto(@RequestParam String path, @RequestParam String file) {
+	public ResponseEntity<?> downloadSingleFile(@RequestParam String path, @RequestParam String file) {
 		ResponseEntity<?> rEntity = null;
 		Map<String, Object> response = new HashMap<>();
 		try {

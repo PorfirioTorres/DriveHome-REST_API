@@ -29,6 +29,46 @@ public class DriveHomeServiceImpl implements IDriveHomeService {
 	public DriveHomeServiceImpl(ResourceLoader resourceLoader) {
 		this.resourceLoader = resourceLoader;
 	}
+	
+	@Override
+	public void uploadDirectory(MultipartFile[] files, String path) throws Exception {
+		// verificar si ya existe el directorio
+		String[] base = files[0].getOriginalFilename().split("/");
+		String dirbase = base[0];
+		
+		Path basePath = getPath(path, dirbase);
+		
+		if (Files.exists(basePath)) {
+			throw new RuntimeException("Ya existe un directorio con ese nombre.");
+		}
+		// crear el arbol de directorios
+		String[] routes = getSubPaths(files);
+		if (routes != null && routes.length > 0) {
+			for (int i = 0; i < routes.length; i++) {				
+				Files.createDirectories(getPath(path, routes[i]));
+			}
+			
+			uploadFiles(files, path);
+		}
+		
+	}
+	
+	private String[] getSubPaths(MultipartFile[] files) {
+		String[] routes = new String[files.length];
+		// generar el arbol de directorios
+		for (int f = 0; f < files.length; f++) {
+			String[] resource = files[f].getOriginalFilename().split("/");
+			StringBuilder tree = new StringBuilder();
+			
+			for (int i = 0; i < resource.length-1; i++) {
+				tree.append(resource[i]);
+				tree.append("/");
+			}
+			routes[f] = tree.toString();
+		}
+		
+		return routes;
+	}
 
 	@Override
 	public void uploadFiles(MultipartFile[] files, String path) throws Exception {

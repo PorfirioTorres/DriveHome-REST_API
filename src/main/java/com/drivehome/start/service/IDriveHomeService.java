@@ -10,6 +10,7 @@ import com.drivehome.start.model.FileDrive;
 
 public interface IDriveHomeService {
 	public abstract void uploadFiles(MultipartFile[] files, String path) throws Exception;
+	public abstract void uploadDirectory(MultipartFile[] files, String path) throws Exception;
 	public abstract Map<String,Object> getDirectoriesAndFiles(String path) throws Exception;
 	public abstract void deleteElement(FileDrive[] elements) throws Exception;
 	public abstract Boolean createDir(String path, String name) throws Exception;
