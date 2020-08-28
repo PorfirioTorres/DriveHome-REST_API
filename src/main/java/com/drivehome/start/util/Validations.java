@@ -17,14 +17,10 @@ public class Validations {
 		return m.find();
 	}
 	
-	public static String sanitizePath(String path) {
-		return path;//.replaceAll("\\", "/");
-	}
-	
 	public static boolean validatePath(String path) {
 		path = path.trim();
 		
-		String regex = "^[A-Za-z][A-Za-z0-9_/:]*$";
+		String regex = "^(.+)\\/([^/]+)$";
 		
 		Pattern p = Pattern.compile(regex);
 		

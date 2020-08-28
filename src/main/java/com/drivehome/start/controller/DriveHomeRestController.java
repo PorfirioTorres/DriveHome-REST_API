@@ -17,7 +17,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 //import org.springframework.util.StreamUtils;
 import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.DeleteMapping;
+//import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -134,7 +134,7 @@ public class DriveHomeRestController {
 		return rEntity;
 	}
 	
-	@DeleteMapping(value="/delete")
+	@PostMapping(value="/delete")
 	public ResponseEntity<?> delete(@RequestBody FileDrive[] elements) {
 		ResponseEntity<?> rEntity = null;
 		Map<String, Object> response = new HashMap<>();
@@ -165,7 +165,7 @@ public class DriveHomeRestController {
 	}
 	
 	@PostMapping(value="/createdir")
-	public ResponseEntity<?> createDir(@RequestParam String path, @RequestParam String name) {
+	public ResponseEntity<?> createDir(@RequestParam ("path") String  path, @RequestParam ("name") String name) {
 		ResponseEntity<?> rEntity = null;
 		Map<String, Object> response = new HashMap<>();
 		HttpStatus resphttp;
@@ -202,7 +202,7 @@ public class DriveHomeRestController {
 		ResponseEntity<?> rEntity = null;
 		Map<String, Object> response = new HashMap<>();
 		HttpStatus resphttp;
-				
+		
 		try {
 			
 			if (path == null || !Validations.validatePath(path) || oldName == null || !Validations.validateName(oldName) ||
@@ -235,13 +235,14 @@ public class DriveHomeRestController {
 	}
 	
 	@GetMapping(value="/download/single")
-	public ResponseEntity<?> downloadSingleFile(@RequestParam String path, @RequestParam String file) {
+	public ResponseEntity<?> downloadSingleFile(@RequestParam String path, @RequestParam String name) {
 		ResponseEntity<?> rEntity = null;
 		Map<String, Object> response = new HashMap<>();
+		System.out.println(path + " " +  name);
 		try {
 			
-			if (path != null && Validations.validatePath(path) && file != null && Validations.validateName(file)) {
-				FileDrive  fdrive = new FileDrive(file, path);
+			if (path != null && Validations.validatePath(path) && name != null && Validations.validateName(name)) {
+				FileDrive  fdrive = new FileDrive(name, path);
 				Resource resource = driveHomeService.download(fdrive);
 				System.out.println(resource);
 				// forzar descarga del recurso
