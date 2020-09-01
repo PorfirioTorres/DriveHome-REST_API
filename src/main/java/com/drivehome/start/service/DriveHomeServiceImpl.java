@@ -7,8 +7,10 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Stream;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -54,19 +56,23 @@ public class DriveHomeServiceImpl implements IDriveHomeService {
 	}
 	
 	private String[] getSubPaths(MultipartFile[] files) {
-		String[] routes = new String[files.length];
+		String[] routes = null;
+		// evitar rutas duplicadas usando linkedhashset
+		Set<String> routesTmp = new LinkedHashSet<>();
 		// generar el arbol de directorios
-		for (int f = 0; f < files.length; f++) {
-			String[] resource = files[f].getOriginalFilename().split("/");
+		for (MultipartFile f: files) {
+			String[] resource = f.getOriginalFilename().split("/");
 			StringBuilder tree = new StringBuilder();
 			
 			for (int i = 0; i < resource.length-1; i++) {
 				tree.append(resource[i]);
 				tree.append("/");
 			}
-			routes[f] = tree.toString();
+			routesTmp.add(tree.toString());
 		}
-		
+		routes = new String[routesTmp.size()];
+	
+		routes = routesTmp.toArray(routes);
 		return routes;
 	}
 
