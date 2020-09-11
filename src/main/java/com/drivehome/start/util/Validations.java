@@ -20,13 +20,13 @@ public class Validations {
 	public static boolean validatePath(String path) {
 		path = path.trim();
 		
-		String regex = "^(.+)\\/([^/]+)$";
+		String regex = "^(.+)\\/([^/]*)$";
 		
 		Pattern p = Pattern.compile(regex);
 		
 		Matcher m = p.matcher(path);
 		
-		if (m.find()) {
+		if (m.matches()) {
 			try {
 				Paths.get(path);
 				return true;
